@@ -41,28 +41,31 @@ def example():
     img_back = np.fft.ifft2(f1shift)
     # 出来的是复数，无法显示
     img_back = np.abs(img_back)
-    plt.figure()
-    plt.imshow(img, 'gray')
-    plt.figure()
-    plt.imshow(wm, 'gray')
-    plt.figure()
-    plt.imshow(s1, 'gray')
-    plt.figure()
-    plt.imshow(s2, 'gray')
-    plt.figure()
-    plt.imshow(img_back, 'gray')
-
-    plt.figure()
-    plt.imshow(img_back2, 'gray')
 
 
 def main():
     img = cv2.imread('Lenna.jpg', 0)  # 直接读为灰度图像
-    img = cv2.resize(img, (300, 300))
+    # img = cv2.resize(img, (300, 300))
 
     wm = cv2.imread("watermark.png", 0)
     wm = cv2.resize(wm, (200, 50))
     wm = 255 - wm
+
+    # fft
+    img_fft = np.fft.fft2(img)
+    img_fft_shift = np.fft.fftshift(img_fft)
+    img_fft_shift_real = np.log(np.abs(img_fft_shift))
+
+    # ifft
+    img_ifft_shift = np.fft.ifftshift(img_fft_shift)
+    img_ifft = np.fft.ifft2(img_ifft_shift)
+    img_ifft_real = np.abs(img_ifft)
+
+
+    plt.subplot(231), plt.imshow(img, 'gray'), plt.title('Original Image')
+    plt.subplot(232), plt.imshow(img_fft_shift_real, 'gray'), plt.title('Fourier Image')
+    plt.subplot(233), plt.imshow(img_ifft_real, 'gray'), plt.title('Reconstructed Image')
+    plt.show()
 
 
 if __name__ == '__main__':
