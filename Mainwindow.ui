@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>800</width>
-    <height>600</height>
+    <width>996</width>
+    <height>794</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -20,7 +20,10 @@
      <verstretch>0</verstretch>
     </sizepolicy>
    </property>
-   <layout class="QVBoxLayout" name="verticalLayout">
+   <layout class="QVBoxLayout" name="verticalLayout" stretch="6,3,1">
+    <property name="spacing">
+     <number>10</number>
+    </property>
     <item>
      <widget class="QGraphicsView" name="picturePreview">
       <property name="minimumSize">
@@ -32,23 +35,53 @@
      </widget>
     </item>
     <item>
-     <widget class="QPushButton" name="selectPcture">
-      <property name="sizePolicy">
-       <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
-        <horstretch>0</horstretch>
-        <verstretch>0</verstretch>
-       </sizepolicy>
+     <widget class="QGraphicsView" name="watermarkPreview"/>
+    </item>
+    <item>
+     <layout class="QHBoxLayout" name="horizontalLayout" stretch="1,1,1">
+      <property name="spacing">
+       <number>3</number>
       </property>
-      <property name="minimumSize">
-       <size>
-        <width>100</width>
-        <height>10</height>
-       </size>
+      <property name="topMargin">
+       <number>0</number>
       </property>
-      <property name="text">
-       <string>Select Picture</string>
+      <property name="rightMargin">
+       <number>0</number>
       </property>
-     </widget>
+      <item>
+       <widget class="QPushButton" name="selectPicture">
+        <property name="sizePolicy">
+         <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+          <horstretch>0</horstretch>
+          <verstretch>0</verstretch>
+         </sizepolicy>
+        </property>
+        <property name="minimumSize">
+         <size>
+          <width>100</width>
+          <height>10</height>
+         </size>
+        </property>
+        <property name="text">
+         <string>Select Picture</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QPushButton" name="selectWatermark">
+        <property name="text">
+         <string>Select Watermark</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QPushButton" name="watermark">
+        <property name="text">
+         <string>Watermark the Picture</string>
+        </property>
+       </widget>
+      </item>
+     </layout>
     </item>
    </layout>
   </widget>
@@ -57,7 +90,7 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>800</width>
+     <width>996</width>
      <height>30</height>
     </rect>
    </property>
@@ -73,14 +106,14 @@
  <resources/>
  <connections>
   <connection>
-   <sender>selectPcture</sender>
+   <sender>selectPicture</sender>
    <signal>clicked()</signal>
    <receiver>MainWindow</receiver>
    <slot>onSelectPictureClicked()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>422</x>
-     <y>550</y>
+     <x>331</x>
+     <y>712</y>
     </hint>
     <hint type="destinationlabel">
      <x>466</x>
@@ -88,8 +121,42 @@
     </hint>
    </hints>
   </connection>
+  <connection>
+   <sender>watermark</sender>
+   <signal>clicked()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>onWatermarkClicked()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>735</x>
+     <y>730</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>690</x>
+     <y>605</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>selectWatermark</sender>
+   <signal>clicked()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>onSelectWatermarkClicked()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>527</x>
+     <y>727</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>491</x>
+     <y>696</y>
+    </hint>
+   </hints>
+  </connection>
  </connections>
  <slots>
   <slot>onSelectPictureClicked()</slot>
+  <slot>onWatermarkClicked()</slot>
+  <slot>onSelectWatermarkClicked()</slot>
  </slots>
 </ui>
