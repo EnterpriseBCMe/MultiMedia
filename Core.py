@@ -3,9 +3,9 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 
-def main(wm_strength=30.0):
-    img = cv2.imread('Lenna.jpg', 0)  # 直接读为灰度图像
-    wm = cv2.imread("watermark.png", 0)
+def watermarking(img_path, wm_path, wm_strength=30.0):
+    img = cv2.imread(img_path, 0)  # 直接读为灰度图像
+    wm = cv2.imread(wm_path, 0)
     wm_height = wm.shape[0]
     wm_width = wm.shape[1]
     wm = 255 - wm
@@ -45,4 +45,4 @@ def main(wm_strength=30.0):
 
 
 if __name__ == '__main__':
-    main()
+    watermarking('Lenna.jpg', 'watermark.png')
