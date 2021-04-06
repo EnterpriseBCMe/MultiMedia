@@ -44,5 +44,21 @@ def watermarking(img_path, wm_path, wm_strength=30.0):
     plt.show()
 
 
+def h260(vid_name):
+    vid = cv2.VideoCapture(vid_name)
+    vid_fps = vid.get(cv2.CAP_PROP_FPS)  # 视频的帧率FPS
+    vid_total_frame = vid.get(cv2.CAP_PROP_FRAME_COUNT)  # 视频的总帧数
+    if vid.isOpened():
+        while True:
+            ret, img = vid.read()
+            if not ret:
+                break
+            cv2.imshow("test", img)
+            cv2.waitKey(int((1000/vid_fps)))
+    else:
+        print('视频打开失败！')
+
+
 if __name__ == '__main__':
-    watermarking('Lenna.jpg', 'watermark.png')
+    # watermarking('Lenna.jpg', 'watermark.png')
+    h260("test.y4m")
