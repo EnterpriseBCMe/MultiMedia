@@ -163,23 +163,23 @@ class JpegCore:
         u_code = self.__Rle(self.__Zig(u_blocks))
         v_code = self.__Rle(self.__Zig(v_blocks))
         # 计算VLI可变字长整数编码并写入文件，未实现Huffman部分
+        bs = bytearray()
         # 原理详解：https://www.cnblogs.com/Arvin-JIN/p/9133745.html
         tfile = os.path.splitext(filename)[0] + ".gpj"
         if os.path.exists(tfile):
             os.remove(tfile)
         with open(tfile, 'wb') as o:
-            o.write(self.height.to_bytes(2, byteorder='big'))
+            bs.extend(self.height.to_bytes(2, byteorder='big'))
+            bs.extend(self.width.to_bytes(2, byteorder='big'))
+            bs.extend((len(y_code)).to_bytes(4, byteorder='big'))
+            bs.extend((len(u_code)).to_bytes(4, byteorder='big'))
+            bs.extend((len(v_code)).to_bytes(4, byteorder='big'))
+            bs.extend(self.__YUV2Bitstream(y_code, u_code, v_code))
+            o.write(bs)
             o.flush()
-            o.write(self.width.to_bytes(2, byteorder='big'))
-            o.flush()
-            o.write((len(y_code)).to_bytes(4, byteorder='big'))
-            o.flush()
-            o.write((len(u_code)).to_bytes(4, byteorder='big'))
-            o.flush()
-            o.write((len(v_code)).to_bytes(4, byteorder='big'))
-            o.flush()
-        self.__New_Write2File(tfile, y_code, u_code, v_code)
+        return bs
 
+    # https://blog.csdn.net/weixin_43690347/article/details/84146979
     def __YUV2Bitstream(self, y_code, u_code, v_code):
         bs = bytearray()
         buff = 0
@@ -221,59 +221,6 @@ class JpegCore:
             bs.append(buff)
         return bs
 
-    def __New_Write2File(self, filename, y_code, u_code, v_code):
-        with open(filename, "ab+") as o:
-            bs = self.__YUV2Bitstream(y_code, u_code, v_code)
-            o.write(bs)
-            o.flush()
-
-    # https://blog.csdn.net/weixin_43690347/article/details/84146979
-    def __Write2File(self, filename, y_code, u_code, v_code):
-        with open(filename, "ab+") as o:
-            buff = 0
-            bcnt = 0
-            data = y_code + u_code + v_code
-            for i in range(len(data)):
-                if i % 2 == 0:
-                    td = data[i]
-                    for ti in range(4):
-                        buff = (buff << 1) | ((td & 0x08) >> 3)
-                        td <<= 1
-                        bcnt += 1
-                        if bcnt == 8:
-                            o.write(buff.to_bytes(1, byteorder='big'))
-                            o.flush()
-                            buff = 0
-                            bcnt = 0
-                else:
-                    td = data[i]
-                    vtl, vts = self.__VLI(td)
-                    for ti in range(4):
-                        buff = (buff << 1) | ((vtl & 0x08) >> 3)
-                        vtl <<= 1
-                        bcnt += 1
-                        if bcnt == 8:
-                            o.write(buff.to_bytes(1, byteorder='big'))
-                            o.flush()
-                            buff = 0
-                            bcnt = 0
-                    for ts in vts:
-                        buff <<= 1
-                        if ts == '1':
-                            buff |= 1
-                        bcnt += 1
-                        if bcnt == 8:
-                            o.write(buff.to_bytes(1, byteorder='big'))
-                            o.flush()
-                            buff = 0
-                            bcnt = 0
-            if bcnt != 0:
-                buff <<= (8 - bcnt)
-                o.write(buff.to_bytes(1, byteorder='big'))
-                o.flush()
-                buff = 0
-                bcnt = 0
-
     def __IDct(self, block):
         # IDCT变换
         res = np.dot(np.transpose(self.__dctA), block)
@@ -309,6 +256,53 @@ class JpegCore:
         matrix = np.vstack(tuple(rlist))
         res = self.__IFill(matrix)
         return res
+
+    def __ReadByteArray(self, byteArray):
+        self.height = int.from_bytes(byteArray[0:1], byteorder='big')
+        self.width = int.from_bytes(byteArray[2:3], byteorder='big')
+        ylen = int.from_bytes(byteArray[4:7], byteorder='big')
+        ulen = int.from_bytes(byteArray[8:11], byteorder='big')
+        vlen = int.from_bytes(byteArray[12:15], byteorder='big')
+        buff = 0
+        bcnt = 0
+        rlist = []
+        itag = 0
+        icnt = 0
+        vtl, tb, tvtl = None, None, None
+        i = 16
+        while len(rlist) < ylen + ulen + vlen:
+            if bcnt == 0:
+                tb = byteArray[i]
+                i += 1
+                if not tb:
+                    break
+                # tb = int.from_bytes(tb, byteorder='big')
+                bcnt = 8
+            if itag == 0:
+                buff = (buff << 1) | ((tb & 0x80) >> 7)
+                tb <<= 1
+                bcnt -= 1
+                icnt += 1
+                if icnt == 4:
+                    rlist.append(buff & 0x0F)
+                elif icnt == 8:
+                    vtl = buff & 0x0F
+                    tvtl = vtl
+                    itag = 1
+                    buff = 0
+            else:
+                buff = (buff << 1) | ((tb & 0x80) >> 7)
+                tb <<= 1
+                bcnt -= 1
+                tvtl -= 1
+                if tvtl == 0 or tvtl == -1:
+                    rlist.append(self.__IVLI(vtl, bin(buff)[2:].rjust(vtl, '0')))
+                    itag = 0
+                    icnt = 0
+        y_dcode = rlist[:ylen]
+        u_dcode = rlist[ylen:ylen + ulen]
+        v_dcode = rlist[ylen + ulen:ylen + ulen + vlen]
+        return y_dcode, u_dcode, v_dcode
 
     def __ReadFile(self, filename):
         with open(filename, "rb") as o:
@@ -379,8 +373,9 @@ class JpegCore:
                 rlist.append(dcode[i])
         return rlist
 
-    def Decompress(self, filename):
-        y_dcode, u_dcode, v_dcode = self.__ReadFile(filename)
+    def Decompress(self, filename, byteArray):
+        y_dcode, u_dcode, v_dcode = self.__ReadByteArray(byteArray)
+        # y_dcode, u_dcode, v_dcode = self.__ReadFile(filename)
         y_blocks = self.__Zag(self.__IRle(y_dcode))
         u_blocks = self.__Zag(self.__IRle(u_dcode))
         v_blocks = self.__Zag(self.__IRle(v_dcode))
@@ -427,5 +422,5 @@ class JpegCore:
 
 if __name__ == '__main__':
     jpegCore = JpegCore()
-    jpegCore.Compress("./sky.bmp")
-    jpegCore.Decompress("./sky.gpj")
+    bs = jpegCore.Compress("./sky.bmp")
+    jpegCore.Decompress("./sky.gpj", bs)
