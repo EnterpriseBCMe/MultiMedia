@@ -258,11 +258,11 @@ class JpegCore:
         return res
 
     def __ReadByteArray(self, byteArray):
-        self.height = int.from_bytes(byteArray[0:1], byteorder='big')
-        self.width = int.from_bytes(byteArray[2:3], byteorder='big')
-        ylen = int.from_bytes(byteArray[4:7], byteorder='big')
-        ulen = int.from_bytes(byteArray[8:11], byteorder='big')
-        vlen = int.from_bytes(byteArray[12:15], byteorder='big')
+        self.height = int.from_bytes(byteArray[0:2], byteorder='big')
+        self.width = int.from_bytes(byteArray[2:4], byteorder='big')
+        ylen = int.from_bytes(byteArray[4:8], byteorder='big')
+        ulen = int.from_bytes(byteArray[8:12], byteorder='big')
+        vlen = int.from_bytes(byteArray[12:16], byteorder='big')
         buff = 0
         bcnt = 0
         rlist = []
@@ -274,9 +274,10 @@ class JpegCore:
             if bcnt == 0:
                 tb = byteArray[i]
                 i += 1
-                if not tb:
-                    break
-                # tb = int.from_bytes(tb, byteorder='big')
+                # if i == len(byteArray):
+                #    break
+                # if not tb:
+                #    break
                 bcnt = 8
             if itag == 0:
                 buff = (buff << 1) | ((tb & 0x80) >> 7)
@@ -304,58 +305,6 @@ class JpegCore:
         v_dcode = rlist[ylen + ulen:ylen + ulen + vlen]
         return y_dcode, u_dcode, v_dcode
 
-    def __ReadFile(self, filename):
-        with open(filename, "rb") as o:
-            tb = o.read(2)
-            self.height = int.from_bytes(tb, byteorder='big')
-            tb = o.read(2)
-            self.width = int.from_bytes(tb, byteorder='big')
-            tb = o.read(4)
-            ylen = int.from_bytes(tb, byteorder='big')
-            tb = o.read(4)
-            ulen = int.from_bytes(tb, byteorder='big')
-            tb = o.read(4)
-            vlen = int.from_bytes(tb, byteorder='big')
-            buff = 0
-            bcnt = 0
-            rlist = []
-            itag = 0
-            icnt = 0
-            vtl, tb, tvtl = None, None, None
-            while len(rlist) < ylen + ulen + vlen:
-                if bcnt == 0:
-                    tb = o.read(1)
-                    if not tb:
-                        break
-                    tb = int.from_bytes(tb, byteorder='big')
-                    bcnt = 8
-                if itag == 0:
-                    buff = (buff << 1) | ((tb & 0x80) >> 7)
-                    tb <<= 1
-                    bcnt -= 1
-                    icnt += 1
-                    if icnt == 4:
-                        rlist.append(buff & 0x0F)
-                    elif icnt == 8:
-                        vtl = buff & 0x0F
-                        tvtl = vtl
-                        itag = 1
-                        buff = 0
-                else:
-                    buff = (buff << 1) | ((tb & 0x80) >> 7)
-                    tb <<= 1
-                    bcnt -= 1
-                    tvtl -= 1
-                    if tvtl == 0 or tvtl == -1:
-                        rlist.append(self.__IVLI(vtl, bin(buff)[2:].rjust(vtl, '0')))
-                        itag = 0
-                        icnt = 0
-        y_dcode = rlist[:ylen]
-        u_dcode = rlist[ylen:ylen + ulen]
-        v_dcode = rlist[ylen + ulen:ylen + ulen + vlen]
-        return y_dcode, u_dcode, v_dcode
-        pass
-
     def __Zag(self, dcode):
         dcode = np.array(dcode).reshape((len(dcode) // 64, 64))
         tz = np.zeros(dcode.shape)
@@ -373,9 +322,8 @@ class JpegCore:
                 rlist.append(dcode[i])
         return rlist
 
-    def Decompress(self, filename, byteArray):
+    def Decompress(self, byteArray):
         y_dcode, u_dcode, v_dcode = self.__ReadByteArray(byteArray)
-        # y_dcode, u_dcode, v_dcode = self.__ReadFile(filename)
         y_blocks = self.__Zag(self.__IRle(y_dcode))
         u_blocks = self.__Zag(self.__IRle(u_dcode))
         v_blocks = self.__Zag(self.__IRle(v_dcode))
@@ -423,4 +371,4 @@ class JpegCore:
 if __name__ == '__main__':
     jpegCore = JpegCore()
     bs = jpegCore.Compress("./sky.bmp")
-    jpegCore.Decompress("./sky.gpj", bs)
+    jpegCore.Decompress(bs)

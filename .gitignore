@@ -27,8 +27,7 @@ share/python-wheels/
 *.egg
 MANIFEST
 
-test.y4m
-test.mp4
+test*
 
 # PyInstaller
 #  Usually these files are written by a python script from a template
