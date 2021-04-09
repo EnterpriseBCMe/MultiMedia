@@ -3,6 +3,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 from JpegCore import JpegCore
+from H260Core import H260Core
 
 
 def watermarking(img_path, wm_path, wm_strength=30.0):
@@ -47,34 +48,32 @@ def watermarking(img_path, wm_path, wm_strength=30.0):
 
 
 def h260(vid_name):
+    jpegCore = JpegCore()
+    h264Core = H260Core()
     GOBSIZE = 5
     vid = cv2.VideoCapture(vid_name)
     vid_fps = vid.get(cv2.CAP_PROP_FPS)  # 视频的帧率FPS
     vid_total_frame = vid.get(cv2.CAP_PROP_FRAME_COUNT)  # 视频的总帧数
     i = 0
+    iFrame = None
+    bs = bytearray()
     if vid.isOpened():
         while True:
             i = i + 1
             ret, img = vid.read()
             if not ret:
                 break
+            if i % GOBSIZE == 0:
+                iFrame = img
+                ba = jpegCore.Compress(image=iFrame)
+            else:
+                ba = h264Core.intraCoding(iFrame, img)
+            bs.append(len(ba))
+            bs.extend(ba)
     else:
         print('fail to open')
-
-    # if vid.isOpened():
-    #    while True:
-    #        ret, img = vid.read()
-    #        if not ret:
-    #            break
-    #        cv2.imshow("test", img)
-    #        cv2.waitKey(int((1000/vid_fps)))
-    # else:
-    #   print('视频打开失败！')
 
 
 if __name__ == '__main__':
     # watermarking('Lenna.jpg', 'watermark.png')
-    # h260("test.y4m")
-    jpegCore = JpegCore()
-    jpegCore.Compress("./sky.bmp")
-    jpegCore.Decompress("./sky.gpj")
+    h260("test.y4m")

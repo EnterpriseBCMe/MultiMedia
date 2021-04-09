@@ -1,4 +1,5 @@
 import os
+import cv2
 import numpy as np
 
 from PIL import Image
@@ -142,18 +143,24 @@ class JpegCore:
             res.append(0)
         return res
 
-    def Compress(self, filename):
-        # 根据路径image_path读取图片，并存储为RGB矩阵
-        image = Image.open(filename)
+    def Compress(self, fileName=None, image=None):
+        # image = Image.open(fileName)
         # 获取图片宽度width和高度height
-        self.width, self.height = image.size
-        image = image.convert('RGB')
-        image = np.asarray(image)
+        # self.width, self.height = image.size
+        self.height = image.shape[0]
+        self.width = image.shape[1]
+        # image = Image.fromarray(image)
+        # image = image.convert('RGB')
+        # image.show()
+        # image = np.asarray(image)
         r = image[:, :, 0]
         g = image[:, :, 1]
         b = image[:, :, 2]
         # 将图像RGB转YUV
         y, u, v = self.__Rgb2Yuv(r, g, b)
+        # y = image[:, :, 0]
+        # u = image[:, :, 1]
+        # v = image[:, :, 2]
         # 对图像矩阵进行编码
         y_blocks = self.__Encode(y, self.__lt)
         u_blocks = self.__Encode(u, self.__ct)
@@ -164,20 +171,20 @@ class JpegCore:
         v_code = self.__Rle(self.__Zig(v_blocks))
         # 计算VLI可变字长整数编码并写入文件，未实现Huffman部分
         bs = bytearray()
-        # 原理详解：https://www.cnblogs.com/Arvin-JIN/p/9133745.html
-        tfile = os.path.splitext(filename)[0] + ".gpj"
-        if os.path.exists(tfile):
-            os.remove(tfile)
-        with open(tfile, 'wb') as o:
-            bs.extend(self.height.to_bytes(2, byteorder='big'))
-            bs.extend(self.width.to_bytes(2, byteorder='big'))
-            bs.extend((len(y_code)).to_bytes(4, byteorder='big'))
-            bs.extend((len(u_code)).to_bytes(4, byteorder='big'))
-            bs.extend((len(v_code)).to_bytes(4, byteorder='big'))
-            bs.extend(self.__YUV2Bitstream(y_code, u_code, v_code))
-            o.write(bs)
-            o.flush()
+        bs.extend(self.height.to_bytes(2, byteorder='big'))
+        bs.extend(self.width.to_bytes(2, byteorder='big'))
+        bs.extend((len(y_code)).to_bytes(4, byteorder='big'))
+        bs.extend((len(u_code)).to_bytes(4, byteorder='big'))
+        bs.extend((len(v_code)).to_bytes(4, byteorder='big'))
+        bs.extend(self.__YUV2Bitstream(y_code, u_code, v_code))
         return bs
+
+    def __Write2File(self, byteStream, fileName):
+        if os.path.exists(fileName):
+            os.remove(fileName)
+        with open(fileName, 'wb') as o:
+            o.write(byteStream)
+            o.flush()
 
     # https://blog.csdn.net/weixin_43690347/article/details/84146979
     def __YUV2Bitstream(self, y_code, u_code, v_code):
@@ -330,6 +337,9 @@ class JpegCore:
         y = self.__Decode(y_blocks, self.__lt)
         u = self.__Decode(u_blocks, self.__ct)
         v = self.__Decode(v_blocks, self.__ct)
+        # image = cv2.merge([y, u, v])
+        # cv2.imshow("result", image)
+        # cv2.waitKey(0)
         r = (y + 1.402 * (v - 128))
         g = (y - 0.34414 * (u - 128) - 0.71414 * (v - 128))
         b = (y + 1.772 * (u - 128))
@@ -337,8 +347,10 @@ class JpegCore:
         g = Image.fromarray(g).convert('L')
         b = Image.fromarray(b).convert('L')
         image = Image.merge("RGB", (r, g, b))
-        image.save("./result.bmp", "bmp")
-        image.show()
+        image = np.asarray(image)
+        cv2.imshow("test", image)
+        cv2.waitKey(2000)
+        # image.show()
 
     def __VLI(self, n):
         # 获取整数n的可变字长整数编码
@@ -370,5 +382,5 @@ class JpegCore:
 
 if __name__ == '__main__':
     jpegCore = JpegCore()
-    bs = jpegCore.Compress("./sky.bmp")
+    bs = jpegCore.Compress(fileName="./nStar.bmp")
     jpegCore.Decompress(bs)
