@@ -47,6 +47,7 @@ def watermarking(img_path, wm_path, wm_strength=30.0):
 
 
 def h260(vid_name):
+    jpegCore = JpegCore()
     GOBSIZE = 5
     vid = cv2.VideoCapture(vid_name)
     vid_fps = vid.get(cv2.CAP_PROP_FPS)  # 视频的帧率FPS
@@ -58,6 +59,11 @@ def h260(vid_name):
             ret, img = vid.read()
             if not ret:
                 break
+            if i == 10:
+                cv2.imshow('test', img)
+                cv2.waitKey(2000)
+                # bs = jpegCore.Compress(image=img)
+                # jpegCore.Decompress(bs)
     else:
         print('fail to open')
 
@@ -74,7 +80,4 @@ def h260(vid_name):
 
 if __name__ == '__main__':
     # watermarking('Lenna.jpg', 'watermark.png')
-    # h260("test.y4m")
-    jpegCore = JpegCore()
-    jpegCore.Compress("./sky.bmp")
-    jpegCore.Decompress("./sky.gpj")
+    h260("test.y4m")
