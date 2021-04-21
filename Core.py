@@ -1,4 +1,5 @@
 import cv2
+import os
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -58,22 +59,60 @@ def h260(vid_name):
     iFrame = None
     bs = bytearray()
     if vid.isOpened():
+        bs.extend(int(vid_total_frame).to_bytes(4, byteorder='big'))
         while True:
-            i = i + 1
             ret, img = vid.read()
             if not ret:
                 break
+            print("Compressing " + str(i+1) + "-th frame")
             if i % GOBSIZE == 0:
                 iFrame = img
+                # ba = bytearray('temp', encoding="UTF-8")
                 ba = jpegCore.Compress(image=iFrame)
             else:
-                ba = h264Core.intraCoding(iFrame, img)
-            bs.append(len(ba))
+                vectorList = h264Core.intraCoding(iFrame, img)
+                ba = vectorList.tobytes()
+
+            bs.extend((len(ba)).to_bytes(4, byteorder='big'))
             bs.extend(ba)
+            i = i + 1
     else:
         print('fail to open')
+    if os.path.exists("test.h260"):
+        os.remove("test.h260")
+    with open("test.h260", 'wb') as o:
+        o.write(bs)
+        o.flush()
+
+
+def rh260(h260_name):
+    jpegCore = JpegCore()
+    h264Core = H260Core()
+    GOBSIZE = 5
+    frameList = []
+    with open(h260_name, 'rb') as o:
+        vid_total_frame = int.from_bytes(o.read(4), byteorder='big')
+        i = 0
+        while i < vid_total_frame:
+            print("Decompressing " + str(i+1) + "-th frame")
+            size = int.from_bytes(o.read(4), byteorder='big')
+            data = o.read(size)
+            if i % GOBSIZE == 0:
+                iFrame = jpegCore.Decompress(data)
+                frameList.append(iFrame)
+            else:
+                pFrame = h264Core.intraDecoding(iFrame, data)
+                frameList.append(pFrame)
+            i += 1
+        i = 0
+        for f in frameList:
+            cv2.imshow("test", f)
+            cv2.imwrite("output/out-"+str(i)+".bmp", f)
+            i += 1
+            cv2.waitKey(40)
 
 
 if __name__ == '__main__':
     # watermarking('Lenna.jpg', 'watermark.png')
-    h260("test.y4m")
+    # h260("test.y4m")
+    rh260("test.h260")

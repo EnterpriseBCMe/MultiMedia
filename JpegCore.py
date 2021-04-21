@@ -348,9 +348,7 @@ class JpegCore:
         b = Image.fromarray(b).convert('L')
         image = Image.merge("RGB", (r, g, b))
         image = np.asarray(image)
-        cv2.imshow("test", image)
-        cv2.waitKey(2000)
-        # image.show()
+        return image
 
     def __VLI(self, n):
         # 获取整数n的可变字长整数编码
